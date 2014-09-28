@@ -15,7 +15,7 @@ class YahooScraper(object):
     _team_names_file = 'data/teams.json'
     
     def __init__(self):
-        with open('data/urls.json') as json_file:
+        with open('urls.json') as json_file:
             self.urls = json.load(json_file)
 
     def get_team_names(self, overwrite=False):
@@ -160,11 +160,16 @@ class YahooScraper(object):
 
         # Write data
         if fmt is 'csv':
-            data.to_csv(location, index=False, date_format=self._datefmt)
+            data.to_csv(
+                location, index=False, date_format=self._datefmt,
+                columns=['date', 'away.team', 'away.score',
+                         'home.score', 'home.team', 'url']
+            )
 
 if __name__ == "__main__":
     scraper = YahooScraper()
-    scraper.get_team_names(overwrite=True)
-    scraper.get_scores(1)
-    scraper.export('data/scores.csv', fmt='csv')
+    scraper.get_team_names(overwrite=False)
+    for i in range(1, 6):
+        scraper.get_scores(i)
+        scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
     

@@ -4,8 +4,6 @@ Scraping college football data from [Yahoo Sports][].
 
 [Yahoo Sports]: http://sports.yahoo.com
 
-## Usage ##
-
 ## Requirements ##
 
 * [Beautiful Soup](http://www.crummy.com/software/BeautifulSoup)
@@ -13,5 +11,5 @@ Scraping college football data from [Yahoo Sports][].
 
 ## URLs ##
 
-URLs for accessing data are stored in the `data/urls.json`
-file. Strings are formatted to use `str.format` style formatting.
+URLs for accessing data are stored in the `urls.json` file. Strings
+are formatted to use `str.format` style formatting.
