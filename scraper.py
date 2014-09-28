@@ -12,14 +12,14 @@ import pandas as pd
 class YahooScraper(object):
     """Scrapes data from Yahoo Sports."""
     _datefmt = '%Y-%m-%d'
-    _team_names_file = 'data/teams.json'
+    _team_names_file = 'data/teams.csv'
     
     def __init__(self):
         with open('urls.json') as json_file:
             self.urls = json.load(json_file)
 
     def get_team_names(self, overwrite=False):
-        """Obtain all team names and save them in a JSON database. If
+        """Obtain all team names and save them in a CSV file. If
         overwrite is True, this will forcibly overwrite the team names
         database if it exists.
 
@@ -70,8 +70,11 @@ class YahooScraper(object):
             data['division'].append('FCS')
 
         # Write
-        with open(self._team_names_file, 'w') as outfile:
-            json.dump(data, outfile, indent=2)
+        teams = pd.DataFrame(data)
+        teams.to_csv(
+            self._team_names_file, columns=['team', 'division'],
+            index=False, encoding='utf-8'
+        )
 
     def get_scores(self, week):
         """Get all scores from one week.
@@ -170,6 +173,7 @@ if __name__ == "__main__":
     scraper = YahooScraper()
     scraper.get_team_names(overwrite=False)
     for i in range(1, 6):
+        continue
         scraper.get_scores(i)
         scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
     
