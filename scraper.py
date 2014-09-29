@@ -156,8 +156,12 @@ class YahooScraper(object):
         for row in rows:
             if row.find().text == '':
                 continue
+            stat_name = row.find('th', class_='stat-name').text
+            stats = row.find_all('td')
+            away = stats[0].text
+            home = stats[1].text
+            print(stat_name, away, home)
             
-
     def export(self, location, kind='scores', fmt='csv'):
         """Export data.
 
@@ -191,8 +195,11 @@ class YahooScraper(object):
             )
 
 if __name__ == "__main__":
+    if not os.path.exists('data'):
+        os.mkdir('data')
     scraper = YahooScraper()
     scraper.get_team_names(overwrite=False)
+    scraper.get_team_stats('http://sports.yahoo.com/ncaaf/georgia-tech-yellow-jackets-virginia-tech-hokies-201409200016/')
     for i in range(1, 6):
         continue
         scraper.get_scores(i)
