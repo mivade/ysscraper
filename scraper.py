@@ -140,11 +140,15 @@ class YahooScraper(object):
     def get_team_stats(self, url):
         """Get the team stats from the game page at url."""
         # Get relevant section of the HTML file
+        print("Attempting to connect to", url)
         try:
             html = urllib2.urlopen(url)
         except:
             raise RuntimeError("Failed fetching URL " + url)
         soup = BeautifulSoup(html)
+        title = soup.title.text.split('|')
+        title = '{} ({})'.format(title[0].strip(), title[1].strip())
+        print("Parsing data for {}...".format(title))
         stats = soup.find('h3', text=u'Team Stats').parent.parent
         rows = stats.find('table').find_all('tr')
 
