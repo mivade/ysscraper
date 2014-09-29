@@ -137,6 +137,27 @@ class YahooScraper(object):
             data['url'].append(url)
         self.scores = pd.DataFrame(data)
 
+    def get_team_stats(self, url):
+        """Get the team stats from the game page at url."""
+        # Get relevant section of the HTML file
+        try:
+            html = urllib2.urlopen(url)
+        except:
+            raise RuntimeError("Failed fetching URL " + url)
+        soup = BeautifulSoup(html)
+        stats = soup.find('h3', text=u'Team Stats').parent.parent
+        rows = stats.find('table').find_all('tr')
+
+        # Empty dictionary for data
+        # TODO
+        data = {}
+
+        # Crawl the table
+        for row in rows:
+            if row.find().text == '':
+                continue
+            
+
     def export(self, location, kind='scores', fmt='csv'):
         """Export data.
 
