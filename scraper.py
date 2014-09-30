@@ -76,7 +76,7 @@ class YahooScraper(object):
             index=False, encoding='utf-8'
         )
 
-    def get_scores(self, week):
+    def get_scores(self, week, with_stats=False):
         """Get all scores from one week.
 
         Notes
@@ -115,10 +115,13 @@ class YahooScraper(object):
             'home.score': [],
             'away.team': [],
             'away.score': [],
+            'uid': [],
             'url': []
         }
 
         # Get score data
+        # TODO: make self.scores a list or dictionary to store more
+        # than one week at a time in memory
         games = soup.find_all(game_row)
         for game in games:
             date_str = game['data-gid'].split('.')[2][:8]
@@ -134,7 +137,20 @@ class YahooScraper(object):
             data['home.score'].append(home_score)
             data['away.team'].append(away)
             data['away.score'].append(away_score)
+            data['uid'].append(game['data-gid'])
             data['url'].append(url)
+            if with_stats:
+                stats = self.get_team_stats(url)
+                for key in stats:
+                    new_key = key.lower().split()
+                    akey = 'away.' + '_'.join(new_key)
+                    hkey = 'home.' + '_'.join(new_key)
+                    if akey not in data:
+                        data[akey] = [stats[key][0]]
+                        data[hkey] = [stats[key][1]]
+                    else:
+                        data[akey].append(stats[key][0])
+                        data[hkey].append(stats[key][1])
         self.scores = pd.DataFrame(data)
 
     def get_team_stats(self, url):
@@ -153,7 +169,6 @@ class YahooScraper(object):
         rows = stats.find('table').find_all('tr')
 
         # Empty dictionary for data
-        # TODO
         data = {}
 
         # Crawl the table
@@ -164,7 +179,8 @@ class YahooScraper(object):
             stats = row.find_all('td')
             away = stats[0].text
             home = stats[1].text
-            print(stat_name, away, home)
+            data[stat_name] = [away, home]
+        return data
             
     def export(self, location, kind='scores', fmt='csv'):
         """Export data.
@@ -192,20 +208,19 @@ class YahooScraper(object):
 
         # Write data
         if fmt is 'csv':
-            data.to_csv(
-                location, index=False, date_format=self._datefmt,
-                columns=['date', 'away.team', 'away.score',
-                         'home.score', 'home.team', 'url']
-            )
+            data.to_csv(location, index=False, date_format=self._datefmt)
 
 if __name__ == "__main__":
     if not os.path.exists('data'):
         os.mkdir('data')
     scraper = YahooScraper()
+    t_start = datetime.now()
+    print("Starting at {}...".format(datetime.ctime(t_start)))
     scraper.get_team_names(overwrite=False)
-    scraper.get_team_stats('http://sports.yahoo.com/ncaaf/georgia-tech-yellow-jackets-virginia-tech-hokies-201409200016/')
-    for i in range(1, 6):
-        continue
-        scraper.get_scores(i)
+    for i in range(1, 2):
+        scraper.get_scores(i, with_stats=True)
         scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
+    t_end = datetime.now()
+    print("Finished at {}.".format(datetime.ctime(t_end)))
+    print("Total time:", str(t_end - t_start))
     
