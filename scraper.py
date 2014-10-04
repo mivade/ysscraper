@@ -6,8 +6,11 @@ import json
 import urllib2
 import re
 from datetime import datetime
+import sqlite3
 from bs4 import BeautifulSoup
-import pandas as pd
+import tabledef
+
+_db_file = 'data.sqlite'
 
 class YahooScraper(object):
     """Scrapes data from Yahoo Sports."""
@@ -17,11 +20,10 @@ class YahooScraper(object):
     def __init__(self):
         with open('urls.json') as json_file:
             self.urls = json.load(json_file)
+        self.conn = sqlite3.connect(_db_file)
 
-    def get_team_names(self, overwrite=False):
-        """Obtain all team names and save them in a CSV file. If
-        overwrite is True, this will forcibly overwrite the team names
-        database if it exists.
+    def get_team_names(self):
+        """Obtain all team names and save them to the database.
 
         Notes
         -----
@@ -30,11 +32,14 @@ class YahooScraper(object):
 
         """
         # Check if we should proceed
-        assert isinstance(overwrite, (bool, int))
-        if not overwrite and os.path.exists(self._team_names_file):
-            print("Team names database already exists! Not overwriting")
+        cur = self.conn.cursor()
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='teams';")
+        if len(cur.fetchall()) is not 0:
+            print("teams table already populated.")
             return
-        
+        self.conn.execute(tabledef.teams)
+        self.conn.commit()
+
         # Load HTML for scraping
         print("Fetching team names...")
         try:
@@ -44,37 +49,27 @@ class YahooScraper(object):
             fcs_html = urllib2.urlopen(url)
         except urllib2.URLError:
             print("Failed to fetch names. Are the URLs incorrect?")
-
-        # Empty dictionary for storing team data
-        # TODO: populate all the other stuff, too
-        data = {
-            'team': [],
-            'division': [],
-            #'conference': [],
-            #'subconference': [] # division within a conference if applicable
-        }
-
+            
         # Scrape FBS
         #conferences = fbs_html.find_all('span', class_='yspdetailttl')
         soup = BeautifulSoup(fbs_html)
         teams = soup.find_all('a', href=re.compile('^/ncaaf/teams/'))
         for team in teams:
-            data['team'].append(team.text)
-            data['division'].append('FBS')
+            with self.conn:
+                self.conn.execute(
+                    "INSERT INTO teams(name,division) VALUES (?,?)",
+                    (team.text, 'FBS')
+                )
 
         # Scrape FCS
         soup = BeautifulSoup(fcs_html)
         teams = soup.find_all('a', href=re.compile('^/ncaaf/teams/'))
         for team in teams:
-            data['team'].append(team.text)
-            data['division'].append('FCS')
-
-        # Write
-        teams = pd.DataFrame(data)
-        teams.to_csv(
-            self._team_names_file, columns=['team', 'division'],
-            index=False, encoding='utf-8'
-        )
+            with self.conn:
+                self.conn.execute(
+                    "INSERT INTO teams(name,division) VALUES (?,?)",
+                    (team.text, 'FCS')
+                )
 
     def get_scores(self, week, with_stats=False):
         """Get all scores from one week.
@@ -216,10 +211,10 @@ if __name__ == "__main__":
     scraper = YahooScraper()
     t_start = datetime.now()
     print("Starting at {}...".format(datetime.ctime(t_start)))
-    scraper.get_team_names(overwrite=False)
-    for i in range(1, 2):
-        scraper.get_scores(i, with_stats=True)
-        scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
+    scraper.get_team_names()
+    #for i in range(1, 2):
+    #    scraper.get_scores(i, with_stats=True)
+    #    scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
     t_end = datetime.now()
     print("Finished at {}.".format(datetime.ctime(t_end)))
     print("Total time:", str(t_end - t_start))
