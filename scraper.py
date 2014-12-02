@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 import sqlite3
 from bs4 import BeautifulSoup
+import pandas as pd
 import tabledef
 
 _db_file = 'data.sqlite'
@@ -155,6 +156,7 @@ class YahooScraper(object):
         try:
             html = urllib2.urlopen(url)
         except:
+            # TODO: this needs to be handled better
             raise RuntimeError("Failed fetching URL " + url)
         soup = BeautifulSoup(html)
         title = soup.title.text.split('|')
@@ -206,15 +208,20 @@ class YahooScraper(object):
             data.to_csv(location, index=False, date_format=self._datefmt)
 
 if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Yahoo Sports CFB data scraper.")
+    parser.add_argument('week', type=int, help="Week to retrieve data from.")
+    args = parser.parse_args()
+    
     if not os.path.exists('data'):
         os.mkdir('data')
     scraper = YahooScraper()
     t_start = datetime.now()
     print("Starting at {}...".format(datetime.ctime(t_start)))
-    scraper.get_team_names()
-    #for i in range(1, 2):
-    #    scraper.get_scores(i, with_stats=True)
-    #    scraper.export('data/scores_2014_week_{:02d}.csv'.format(i), fmt='csv')
+    #scraper.get_team_names()
+    scraper.get_scores(args.week, with_stats=False)
+    scraper.export('data/scores_2014_week_{:02d}.csv'.format(args.week), fmt='csv')
     t_end = datetime.now()
     print("Finished at {}.".format(datetime.ctime(t_end)))
     print("Total time:", str(t_end - t_start))
